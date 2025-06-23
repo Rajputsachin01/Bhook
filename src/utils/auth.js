@@ -26,12 +26,13 @@ const isAuth = (req, res, next) => {
     return Response.error(res, "Unauthorized: Invalid token", err, 401);
   }
 };
-const isAdmin = (req, res, next) => {
-  if (req.role !== "admin") {
-    return Response.fail(res, "Forbidden: Admins only", 403);
+const isClient = (req, res, next) => {
+  if (req.role !== "client") {
+    return Response.fail(res, "Forbidden: Clients only", 403);
   }
   next();
 };
+
 const isUser = (req, res, next) => {
   if (req.role !== "user") {
     return Response.fail(res, "Forbidden: Users only", 403);
@@ -42,6 +43,6 @@ const isUser = (req, res, next) => {
 module.exports = {
   signInToken,
   isAuth,
-  isAdmin,
+  isClient,
   isUser,
 };

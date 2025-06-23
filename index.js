@@ -9,14 +9,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({extended:true}));
 
-// const userRoutes = require('./routes/userRoutes')
+const categoryRoutes = require('./src/routes/categoryRoutes')
+const clientRoutes = require('./src/routes/clientRoutes')
 
-// app.use("/v1/user",userRoutes)
+app.use("/v1/category",categoryRoutes)
+app.use("/v1/client",clientRoutes)
 
 app.get("/",(req,res)=>{
     res.send("Server is Active")
 })
-const PORT=process.env.PORT ||5000;
+const PORT=process.env.PORT ||5010;
 app.listen(PORT,()=>{
     console.log(`Server is Running On http://localhost:${PORT}`);
 })
