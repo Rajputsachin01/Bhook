@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const ClientSchema = new mongoose.Schema(
   {
-    buisnessName: {
+    businessName: {
       type: String,
       required: true,
       default: "",
@@ -20,6 +20,9 @@ const ClientSchema = new mongoose.Schema(
     userName: {
       type: String,
     },
+    convenienceFee: {
+      type: Number,
+    },
     password: {
       type: String,
       required: true,
@@ -31,4 +34,4 @@ const ClientSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("client", ClientSchema);
+module.exports = mongoose.model("Client", ClientSchema);

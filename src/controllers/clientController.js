@@ -7,9 +7,9 @@ const { isEmpty } = require("../utils/validationHelper");
 // REGISTER CLIENT
 const registerClient = async (req, res) => {
   try {
-    const { buisnessName, password, pin, userName } = req.body;
+    const { businessName, password, pin, userName ,convenienceFee} = req.body;
 
-    if (isEmpty(buisnessName) || isEmpty(password) || isEmpty(pin)) {
+    if (isEmpty(businessName) || isEmpty(password) || isEmpty(pin)) {
       return Response.fail(res, "buisnessName, password and pin are required");
     }
 
@@ -25,19 +25,21 @@ const registerClient = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newClient = new ClientModel({
-      buisnessName,
+      businessName,
       password: hashedPassword,
       pin,
       userName,
+      convenienceFee
     });
 
     await newClient.save();
 
     return Response.success(res, "Client registered successfully", {
       id: newClient._id,
-      buisnessName: newClient.buisnessName,
+      businessName: newClient.businessName,
       isActive: newClient.isActive,
       userName: newClient.userName,
+      convenienceFee: newClient.convenienceFee,
     });
   } catch (err) {
     return Response.error(res, "Failed to register client", err);
@@ -66,7 +68,7 @@ const loginClient = async (req, res) => {
       token,
       client: {
         id: client._id,
-        buisnessName: client.buisnessName,
+        businessName: client.businessName,
         userName: client.userName,
         isActive: client.isActive,
       },
