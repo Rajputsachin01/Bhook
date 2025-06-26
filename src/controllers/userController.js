@@ -1,5 +1,7 @@
 const UserModel = require("../models/userModel");
 const ClientModel = require("../models/clientModel");
+const CategoryModel = require("../models/categoryModel");
+const ItemModel = require("../models/itemModel");
 const Response = require("../utils/responseHelper");
 const { isValidPhone } = require("../utils/validationHelper");
 const { signInToken } = require("../utils/auth");
@@ -155,9 +157,37 @@ const fetchClient = async (req, res) => {
   }
 };
 
+
+const searchContent = async (req, res) => {
+  try {
+    const { term } = req.body;
+
+    if (!term || term.trim() === "") {
+      return Response.fail(res, "Search term is required");
+    }
+
+    const regex = new RegExp(term, "i");
+
+    const [categories, items] = await Promise.all([
+      CategoryModel.find({ categoryName: regex }),
+      ItemModel.find({ itemName: regex }),
+    ]);
+
+    return Response.success(res, "Search results fetched successfully", {
+      term,
+      categories,
+      items,
+    });
+  } catch (err) {
+    return Response.error(res, "Failed to search content", err);
+  }
+};
+
+
 module.exports = {
   sendOtp,
   verifyOTP,
   resendOTP,
   fetchClient,
+  searchContent
 };
