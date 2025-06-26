@@ -63,13 +63,13 @@ const loginClient = async (req, res) => {
     if (!isMatch) return Response.fail(res, "Invalid credentials");
 
     const token = signInToken(client._id, "client");
-
     return Response.success(res, "Client logged in successfully", {
       token,
       client: {
         id: client._id,
         businessName: client.businessName,
         userName: client.userName,
+        convenienceFee: client.convenienceFee,
         isActive: client.isActive,
       },
     });
