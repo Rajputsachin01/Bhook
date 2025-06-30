@@ -13,7 +13,7 @@ const formatDate = (date) => {
   return `${yyyy}${mm}${dd}`;
 };
 
-const createCart = async (req, res) => {
+const createOrder = async (req, res) => {
   try {
     const userId = req.userId;
     const { orderType } = req.body;
@@ -83,7 +83,7 @@ const createCart = async (req, res) => {
   }
 };
 
-const updateCart = async (req, res) => {
+const updateOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
     if (!isValidObjectId(orderId)) return Response.fail(res, "Invalid order ID");
@@ -97,7 +97,7 @@ const updateCart = async (req, res) => {
   }
 };
 
-const deleteCart = async (req, res) => {
+const deleteOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
     if (!isValidObjectId(orderId)) return Response.fail(res, "Invalid order ID");
@@ -228,9 +228,9 @@ const verifyPinAndGetTotal = async (req, res) => {
   }
 };
 module.exports = {
-  createCart,
-  updateCart,
-  deleteCart,
+  createOredr,
+  updateOredr,
+  deleteOredr,
   updateOrderStatus,
   ListingOrderByStatus,
   fetchOrder,
