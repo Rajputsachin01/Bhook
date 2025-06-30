@@ -228,9 +228,9 @@ const verifyPinAndGetTotal = async (req, res) => {
   }
 };
 module.exports = {
-  createOredr,
-  updateOredr,
-  deleteOredr,
+  createOrder,
+  updateOrder,
+  deleteOrder,
   updateOrderStatus,
   ListingOrderByStatus,
   fetchOrder,
