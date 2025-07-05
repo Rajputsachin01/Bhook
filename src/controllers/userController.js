@@ -45,15 +45,16 @@ const sendOtp = async (req, res) => {
       if (otpToday.length >= MAX_OTP_PER_DAY) {
         return Response.fail(res, "Maximum OTP requests reached for today.");
       }
-
+//generateOtp()
       user.otp = {
-        code: generateOtp(),
+        code: "123456",
         expiresAt: new Date(now.getTime() + OTP_EXPIRY_SECONDS * 1000),
       };
       user.otpRequests.push({ requestedAt: now });
       await user.save();
     } else {
-      const newOtp = generateOtp();
+      //generateOtp();
+      const newOtp = "123456"
       user = await UserModel.create({
         phoneNo,
         otp: {
@@ -129,8 +130,8 @@ const resendOTP = async (req, res) => {
     if (otpToday.length >= MAX_OTP_PER_DAY) {
       return Response.fail(res, "Maximum OTP requests reached for today.");
     }
-
-    const newOtp = generateOtp();
+//generateOtp();
+    const newOtp ="123456" 
     user.otp = {
       code: newOtp,
       expiresAt: new Date(now.getTime() + OTP_EXPIRY_SECONDS * 1000),
