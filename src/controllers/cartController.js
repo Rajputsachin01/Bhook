@@ -105,48 +105,80 @@ const removeItemFromCart = async (req, res) => {
     return Response.error(res, "Failed to remove item from cart", err);
   }
 };
-
-
 const listingCarts = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const cart = await CartModel.findOne({ userId, isDeleted: false }).populate({
-      path: "items.itemId",
-      populate: {
-        path: "categoryId",
-        model: "Category",
+    const cart = await CartModel.aggregate([
+      { $match: { userId, isDeleted: false } },
+      { 
+        $unwind: "$items" 
       },
-    });
+      { 
+        $lookup: {
+          from: "items",  
+          localField: "items.itemId",
+          foreignField: "_id",
+          as: "itemDetails"
+        }
+      },
+      { 
+        $unwind: { path: "$itemDetails", preserveNullAndEmptyArrays: true }
+      },
+      { 
+        $lookup: {
+          from: "categories", 
+          localField: "itemDetails.categoryId",
+          foreignField: "_id",
+          as: "categoryDetails"
+        }
+      },
+      {
+        $project: {
+          "items.quantity": 1,
+          "itemDetails._id": 1,
+          "itemDetails.itemName": 1,
+          "itemDetails.image": 1,
+          "itemDetails.description": 1,
+          "itemDetails.isPublished": 1,
+          "itemDetails.itemPrice": 1,
+          "itemDetails.parcelFeePerPiece": 1,
+          "categoryDetails.categoryName": { $ifNull: ["$categoryDetails.categoryName", "Uncategorized"] }
+        }
+      }
+    ]);
 
-    if (!cart) return Response.success(res, "Cart is empty", []);
+    if (!cart || cart.length === 0) return Response.success(res, "Cart is empty", []);
 
     let cartTotal = 0;
-    let totalItems = 0; 
+    let totalItems = 0;
 
-    const enrichedItems = cart.items.map((entry) => {
-      const item = entry.itemId;
-      const quantity = entry.quantity;
+    const enrichedItems = cart.map((entry) => {
+      const item = entry.itemDetails;
+      const quantity = entry.items.quantity;
 
       const itemPrice = item?.itemPrice || 0;
       const itemTotal = itemPrice * quantity;
 
       cartTotal += itemTotal;
-      totalItems += quantity; 
+      totalItems += quantity;
 
       return {
         _id: item._id,
         itemName: item.itemName,
         itemPrice,
+        image: item.image, 
+        description: item.description, 
+        isPublished: item.isPublished, 
         quantity,
         itemTotal,
         parcelFeePerPiece: item.parcelFeePerPiece,
-        category: item.categoryId?.name || "Uncategorized",
+        category: entry.categoryDetails.categoryName,
       };
     });
 
     const finalCart = {
-      cartId: cart._id,
+      cartId: cart[0]._id,
       items: enrichedItems,
       cartTotal,
       totalItems,
@@ -154,9 +186,12 @@ const listingCarts = async (req, res) => {
 
     return Response.success(res, "Cart fetched with totals", finalCart);
   } catch (err) {
-    return Response.error(res, "Failed to fetch cart", err);
+    console.error("Error fetching cart:", err); 
+    return Response.error(res, "Failed to fetch cart", err.message || err);
   }
 };
+
+
 
 
 
