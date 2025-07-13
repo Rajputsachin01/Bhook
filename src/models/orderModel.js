@@ -48,6 +48,10 @@ const OrderSchema = new mongoose.Schema(
     totalPrice: {
       type: Number,
     },
+    items: {
+      type: Array,
+      default: []
+    },
 
     isDeleted: { type: Boolean, default: false },
   },

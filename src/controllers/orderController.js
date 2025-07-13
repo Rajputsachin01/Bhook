@@ -27,15 +27,17 @@ const createOrder = async (req, res) => {
       populate: { path: "categoryId", model: "Category" },
     });
 
-    if (!cart || cart.items.length === 0) return Response.fail(res, "Cart is empty");
+    if (!cart || cart.items.length === 0)
+      return Response.fail(res, "Cart is empty");
 
-    // Fetch convenience fee from client table (assuming only one client entry exists)
     const client = await ClientModel.findOne({ isDeleted: false });
     const convenienceFee = client?.convenienceFee || 0;
     const businessName = client?.businessName || "Unknown";
 
     let subTotal = 0;
     let parcelFee = 0;
+
+    const orderItems = [];
 
     cart.items.forEach((entry) => {
       const item = entry.itemId;
@@ -45,13 +47,23 @@ const createOrder = async (req, res) => {
 
       subTotal += itemPrice * quantity;
       if (orderType === "Parcel") parcelFee += fee * quantity;
+
+      orderItems.push({
+        itemId: item._id,
+        name: item.itemName,
+        category: item.categoryId?.categoryName || "Uncategorized",
+        quantity,
+        price: itemPrice,
+        parcelFeePerPiece: fee,
+        totalItemPrice: itemPrice * quantity,
+      });
     });
 
     const totalPrice = subTotal + parcelFee + convenienceFee;
 
     const now = new Date();
     const orderDate = formatDate(now);
-    const orderTime = now.toTimeString().split(' ')[0];
+    const orderTime = now.toTimeString().split(" ")[0];
 
     const todayStart = new Date(now.setHours(0, 0, 0, 0));
     const todayEnd = new Date(now.setHours(23, 59, 59, 999));
@@ -60,7 +72,7 @@ const createOrder = async (req, res) => {
       createdAt: { $gte: todayStart, $lte: todayEnd },
     });
 
-    const tokenNumber = String(todayOrderCount + 1).padStart(2, '0');
+    const tokenNumber = String(todayOrderCount + 1).padStart(2, "0");
     const orderId = `ORD-${orderDate}-${tokenNumber}`;
 
     const order = await OrderModel.create({
@@ -69,6 +81,7 @@ const createOrder = async (req, res) => {
       orderId,
       tokenNumber,
       orderType,
+      items: orderItems, // <- Storing item details
       subTotal,
       parcelFee,
       convenienceFee,
@@ -82,6 +95,7 @@ const createOrder = async (req, res) => {
     return Response.error(res, "Failed to create order", err);
   }
 };
+
 
 const updateOrder = async (req, res) => {
   try {
@@ -227,6 +241,27 @@ const verifyPinAndGetTotal = async (req, res) => {
     return Response.error(res, "Failed to verify pin or calculate total", err);
   }
 };
+
+const getOrderDetails = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return Response.fail(res, "Order ID is required");
+    }
+
+    const order = await OrderModel.findOne({ _id : orderId })
+
+    if (!order) {
+      return Response.fail(res, "Order not found");
+    }
+
+    return Response.success(res, "Order details fetched successfully", order);
+  } catch (err) {
+    return Response.error(res, "Failed to fetch order details", err);
+  }
+};
+
 module.exports = {
   createOrder,
   updateOrder,
@@ -235,5 +270,6 @@ module.exports = {
   ListingOrderByStatus,
   fetchOrder,
   fetchOrderHistory,
-  verifyPinAndGetTotal
+  verifyPinAndGetTotal,
+  getOrderDetails
 };

@@ -103,17 +103,28 @@ const listingItems = async (req, res) => {
 
     const total = await ItemModel.countDocuments();
 
-    const grouped = {};
+    // Grouping items by category
+    const groupedMap = new Map();
 
     items.forEach((item) => {
+      const categoryId = item.categoryId?._id?.toString() || null;
       const categoryName = item.categoryId?.categoryName || "Uncategorized";
 
-      if (!grouped[categoryName]) grouped[categoryName] = [];
-      grouped[categoryName].push(item);
+      if (!groupedMap.has(categoryId)) {
+        groupedMap.set(categoryId, {
+          categoryId,
+          categoryName,
+          items: []
+        });
+      }
+
+      groupedMap.get(categoryId).items.push(item);
     });
 
+    const groupedArray = Array.from(groupedMap.values());
+
     const result = {
-      groupedItems: grouped,
+      categories: groupedArray,
       pagination: {
         total,
         page,
@@ -127,6 +138,7 @@ const listingItems = async (req, res) => {
     return Response.error(res, "Failed to list items", err);
   }
 };
+
 
 module.exports = {
   createItem,

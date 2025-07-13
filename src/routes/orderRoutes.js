@@ -12,5 +12,6 @@ router.post("/ListingOrderByStatus",isAuth,isClient,orderController.ListingOrder
 router.post("/fetchOrder",isAuth,orderController.fetchOrder);//in this fetch the full order with details of that user by userId in token req.userId
 router.post("/fetchOrderHistory",isAuth,orderController.fetchOrderHistory);//in this only those Orders which are status expired collectd and rejected
 router.post("/fetchTotal",isAuth,isClient,orderController.verifyPinAndGetTotal);
+router.post("/detail", isAuth, orderController.getOrderDetails);
 module.exports = router;
 
