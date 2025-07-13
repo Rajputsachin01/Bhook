@@ -174,6 +174,30 @@ const ListingOrderByStatus = async (req, res) => {
   }
 };
 
+const ListingOrderByStatusOfUser = async (req, res) => {
+  try {
+    const { orderStatus } = req.body;
+    const { page, limit, skip } = getPagination(req.body);
+
+    if (!orderStatus || !["Confirm", "Ready", "Collected", "Expired", "Rejected"].includes(orderStatus)) {
+      return Response.fail(res, "Invalid order status");
+    }
+
+    const query = { orderStatus, isDeleted: false };
+
+    const [orders, total] = await Promise.all([
+      OrderModel.find(query).skip(skip).limit(limit),
+      OrderModel.countDocuments(query),
+    ]);
+
+    const result = paginatedResponse(orders, total, page, limit);
+
+    return Response.success(res, "Orders fetched by status", result);
+  } catch (err) {
+    return Response.error(res, "Failed to list orders", err);
+  }
+};
+
 const fetchOrder = async (req, res) => {
   try {
     const userId = req.userId;
@@ -271,5 +295,6 @@ module.exports = {
   fetchOrder,
   fetchOrderHistory,
   verifyPinAndGetTotal,
-  getOrderDetails
+  getOrderDetails,
+  ListingOrderByStatusOfUser
 };

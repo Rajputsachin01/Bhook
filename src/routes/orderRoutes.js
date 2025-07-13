@@ -13,5 +13,6 @@ router.post("/fetchOrder",isAuth,orderController.fetchOrder);//in this fetch the
 router.post("/fetchOrderHistory",isAuth,orderController.fetchOrderHistory);//in this only those Orders which are status expired collectd and rejected
 router.post("/fetchTotal",isAuth,isClient,orderController.verifyPinAndGetTotal);
 router.post("/detail", isAuth, orderController.getOrderDetails);
+router.post("/user-list", isAuth, orderController.ListingOrderByStatusOfUser);
 module.exports = router;
 
