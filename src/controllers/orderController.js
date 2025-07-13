@@ -179,11 +179,17 @@ const ListingOrderByStatusOfUser = async (req, res) => {
     const { orderStatus } = req.body;
     const { page, limit, skip } = getPagination(req.body);
 
-    if (!orderStatus || !["Confirm", "Ready", "Collected", "Expired", "Rejected"].includes(orderStatus)) {
-      return Response.fail(res, "Invalid order status");
-    }
+    // Base query for non-deleted orders
+    const query = { isDeleted: false };
 
-    const query = { orderStatus, isDeleted: false };
+    // If valid orderStatus is provided, add it to the query
+    if (orderStatus) {
+      const validStatuses = ["Confirm", "Ready", "Collected", "Expired", "Rejected"];
+      if (!validStatuses.includes(orderStatus)) {
+        return Response.fail(res, "Invalid order status");
+      }
+      query.orderStatus = orderStatus;
+    }
 
     const [orders, total] = await Promise.all([
       OrderModel.find(query).skip(skip).limit(limit),
@@ -192,11 +198,12 @@ const ListingOrderByStatusOfUser = async (req, res) => {
 
     const result = paginatedResponse(orders, total, page, limit);
 
-    return Response.success(res, "Orders fetched by status", result);
+    return Response.success(res, "Orders fetched", result);
   } catch (err) {
     return Response.error(res, "Failed to list orders", err);
   }
 };
+
 
 const fetchOrder = async (req, res) => {
   try {
