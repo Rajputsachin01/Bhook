@@ -2,19 +2,36 @@ const ClientModel = require("../models/clientModel");
 const bcrypt = require("bcrypt");
 const { signInToken } = require("../utils/auth");
 const Response = require("../utils/responseHelper");
-const { isEmpty } = require("../utils/validationHelper");
+const {
+  isEmpty,
+  isValidPhone,
+  isValidObjectId,
+} = require("../utils/validationHelper");
 
 // REGISTER CLIENT
 const registerClient = async (req, res) => {
   try {
-    const { businessName, password, pin, userName ,convenienceFee} = req.body;
+    const { businessName, password, pin, userName, number, convenienceFee } =
+      req.body;
 
-    if (isEmpty(businessName) || isEmpty(password) || isEmpty(pin)) {
-      return Response.fail(res, "buisnessName, password and pin are required");
+    if (
+      isEmpty(businessName) ||
+      isEmpty(password) ||
+      isEmpty(pin) ||
+      isEmpty(userName) ||
+      isEmpty(number)
+    ) {
+      return Response.fail(
+        res,
+        "buisnessName, password ,userName , number and pin are required"
+      );
     }
 
     if (pin < 1000 || pin > 9999) {
       return Response.fail(res, "PIN must be a 4-digit number");
+    }
+    if (!isValidPhone(number)) {
+      return Response.fail(res, "Invalid mobile number format");
     }
 
     const existingClient = await ClientModel.findOne({ userName });
@@ -29,7 +46,8 @@ const registerClient = async (req, res) => {
       password: hashedPassword,
       pin,
       userName,
-      convenienceFee
+      number,
+      convenienceFee,
     });
 
     await newClient.save();
@@ -39,6 +57,7 @@ const registerClient = async (req, res) => {
       businessName: newClient.businessName,
       isActive: newClient.isActive,
       userName: newClient.userName,
+      number: newClient.number,
       convenienceFee: newClient.convenienceFee,
     });
   } catch (err) {
@@ -49,13 +68,37 @@ const registerClient = async (req, res) => {
 // LOGIN CLIENT
 const loginClient = async (req, res) => {
   try {
-    const { userName, password } = req.body;
+    const { number, userName, password } = req.body;
 
-    if (isEmpty(userName) || isEmpty(password)) {
-      return Response.fail(res, "userName and password are required");
+    if (isEmpty(password)) {
+      return Response.fail(res, "Password is required");
     }
 
-    const client = await ClientModel.findOne({ userName, isDeleted: false });
+    if (isEmpty(userName) && isEmpty(number)) {
+      return Response.fail(res, "Provide either userName or number");
+    }
+
+    const query = {
+      isDeleted: false,
+      $or: [],
+    };
+
+    if (!isEmpty(userName)) {
+      query.$or.push({ userName });
+    }
+
+    if (!isEmpty(number)) {
+      if (!isValidPhone(number)) {
+        return Response.fail(res, "Invalid mobile number format");
+      }
+      query.$or.push({ number });
+    }
+
+    if (query.$or.length === 0) {
+      return Response.fail(res, "Invalid login input");
+    }
+
+    const client = await ClientModel.findOne(query);
 
     if (!client) return Response.fail(res, "Invalid credentials");
 
@@ -63,12 +106,14 @@ const loginClient = async (req, res) => {
     if (!isMatch) return Response.fail(res, "Invalid credentials");
 
     const token = signInToken(client._id, "client");
+
     return Response.success(res, "Client logged in successfully", {
       token,
       client: {
         id: client._id,
         businessName: client.businessName,
         userName: client.userName,
+        number: client.number,
         convenienceFee: client.convenienceFee,
         isActive: client.isActive,
       },
@@ -92,11 +137,55 @@ const toggleIsActive = async (req, res) => {
     client.isActive = !client.isActive;
     await client.save();
 
-    return Response.success(res, `Client is now ${client.isActive ? "active" : "inactive"}`, {
-      isActive: client.isActive,
-    });
+    return Response.success(
+      res,
+      `Client is now ${client.isActive ? "active" : "inactive"}`,
+      {
+        isActive: client.isActive,
+      }
+    );
   } catch (err) {
     return Response.error(res, "Failed to toggle status", err);
+  }
+};
+const updateConvenienceFee = async (req, res) => {
+  try {
+    const clientId = req.userId;
+    const { convenienceFee } = req.body;
+
+    if (isEmpty(clientId) || !isValidObjectId(clientId)) {
+      return Response.fail(res, "Valid clientId is required");
+    }
+
+    if (isEmpty(convenienceFee) && convenienceFee !== 0) {
+      return Response.fail(res, "Convenience fee is required");
+    }
+
+    if (typeof convenienceFee !== "number" || convenienceFee < 0) {
+      return Response.fail(
+        res,
+        "Convenience fee must be a non-negative number"
+      );
+    }
+    const client = await ClientModel.findOne({
+      _id: clientId,
+      isDeleted: false,
+    });
+    if (!client) {
+      return Response.fail(res, "Client not found");
+    }
+    client.convenienceFee = convenienceFee;
+    await client.save();
+
+    return Response.success(res, "Convenience fee updated successfully", {
+      id: client._id,
+      businessName: client.businessName,
+      userName: client.userName,
+      number: client.number,
+      convenienceFee: client.convenienceFee,
+    });
+  } catch (err) {
+    return Response.error(res, "Failed to update convenience fee", err);
   }
 };
 
@@ -104,4 +193,5 @@ module.exports = {
   registerClient,
   loginClient,
   toggleIsActive,
+  updateConvenienceFee,
 };

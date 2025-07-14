@@ -19,6 +19,9 @@ const ClientSchema = new mongoose.Schema(
     userName: {
       type: String,
     },
+    number: {
+      type: Number,
+    },
     convenienceFee: {
       type: Number,
     },

@@ -3,16 +3,17 @@ const CartModel = require("../models/cartModel");
 const ClientModel = require("../models/clientModel");
 const Response = require("../utils/responseHelper");
 const { isValidObjectId } = require("../utils/validationHelper");
-const { getPagination, paginatedResponse } = require("../utils/paginationHelper");
+const {
+  getPagination,
+  paginatedResponse,
+} = require("../utils/paginationHelper");
 
-// Helper to format date to YYYYMMDD
 const formatDate = (date) => {
   const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
   return `${yyyy}${mm}${dd}`;
 };
-
 const createOrder = async (req, res) => {
   try {
     const userId = req.userId;
@@ -21,24 +22,21 @@ const createOrder = async (req, res) => {
     if (!orderType || !["Dine-In", "Parcel"].includes(orderType)) {
       return Response.fail(res, "Invalid or missing order type");
     }
-
-    const cart = await CartModel.findOne({ userId, isDeleted: false }).populate({
-      path: "items.itemId",
-      populate: { path: "categoryId", model: "Category" },
-    });
-
-    if (!cart || cart.items.length === 0)
+    const cart = await CartModel.findOne({ userId, isDeleted: false }).populate(
+      {
+        path: "items.itemId",
+        populate: { path: "categoryId", model: "Category" },
+      }
+    );
+    if (!cart || cart.items.length === 0) {
       return Response.fail(res, "Cart is empty");
-
+    }
     const client = await ClientModel.findOne({ isDeleted: false });
     const convenienceFee = client?.convenienceFee || 0;
     const businessName = client?.businessName || "Unknown";
-
     let subTotal = 0;
     let parcelFee = 0;
-
     const orderItems = [];
-
     cart.items.forEach((entry) => {
       const item = entry.itemId;
       const quantity = entry.quantity;
@@ -61,33 +59,54 @@ const createOrder = async (req, res) => {
 
     const totalPrice = subTotal + parcelFee + convenienceFee;
 
-    const now = new Date();
-    const orderDate = formatDate(now);
-    const orderTime = now.toTimeString().split(" ")[0];
+    const createdAt = new Date();
 
-    const todayStart = new Date(now.setHours(0, 0, 0, 0));
-    const todayEnd = new Date(now.setHours(23, 59, 59, 999));
+    const todayStart = new Date(
+      createdAt.getFullYear(),
+      createdAt.getMonth(),
+      createdAt.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
+    const todayEnd = new Date(
+      createdAt.getFullYear(),
+      createdAt.getMonth(),
+      createdAt.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
 
-    const todayOrderCount = await OrderModel.countDocuments({
-      createdAt: { $gte: todayStart, $lte: todayEnd },
+    const countBeforeThis = await OrderModel.countDocuments({
+      createdAt: { $gte: todayStart, $lte: createdAt },
     });
 
-    const tokenNumber = String(todayOrderCount + 1).padStart(2, "0");
-    const orderId = `ORD-${orderDate}-${tokenNumber}`;
+    const tokenNumber = String(countBeforeThis + 1).padStart(2, "0");
 
+    const formatDate = (date) => {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      return `${yyyy}${mm}${dd}`;
+    };
+    const orderDate = formatDate(createdAt);
+    const orderId = `ORD-${orderDate}-${tokenNumber}`;
     const order = await OrderModel.create({
       userId,
       cartId: cart._id,
-      orderId,
-      tokenNumber,
       orderType,
-      items: orderItems, // <- Storing item details
+      items: orderItems,
       subTotal,
       parcelFee,
       convenienceFee,
       businessName,
       totalPrice,
-      createdAt: new Date(),
+      orderId,
+      tokenNumber,
+      createdAt,
     });
 
     return Response.success(res, "Order placed successfully", order);
@@ -96,13 +115,15 @@ const createOrder = async (req, res) => {
   }
 };
 
-
 const updateOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
-    if (!isValidObjectId(orderId)) return Response.fail(res, "Invalid order ID");
+    if (!isValidObjectId(orderId))
+      return Response.fail(res, "Invalid order ID");
 
-    const updatedOrder = await OrderModel.findByIdAndUpdate(orderId, req.body, { new: true });
+    const updatedOrder = await OrderModel.findByIdAndUpdate(orderId, req.body, {
+      new: true,
+    });
     if (!updatedOrder) return Response.fail(res, "Order not found");
 
     return Response.success(res, "Order updated successfully", updatedOrder);
@@ -114,7 +135,8 @@ const updateOrder = async (req, res) => {
 const deleteOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
-    if (!isValidObjectId(orderId)) return Response.fail(res, "Invalid order ID");
+    if (!isValidObjectId(orderId))
+      return Response.fail(res, "Invalid order ID");
 
     const order = await OrderModel.findById(orderId);
     if (!order || order.isDeleted) return Response.fail(res, "Order not found");
@@ -133,8 +155,19 @@ const updateOrderStatus = async (req, res) => {
     const orderId = req.params.id;
     const { orderStatus } = req.body;
 
-    if (!isValidObjectId(orderId)) return Response.fail(res, "Invalid order ID");
-    if (!orderStatus || !["Preparing","Confirm", "Ready", "Collected", "Expired", "Rejected"].includes(orderStatus)) {
+    if (!isValidObjectId(orderId))
+      return Response.fail(res, "Invalid order ID");
+    if (
+      !orderStatus ||
+      ![
+        "Preparing",
+        "Confirm",
+        "Ready",
+        "Collected",
+        "Expired",
+        "Rejected",
+      ].includes(orderStatus)
+    ) {
       return Response.fail(res, "Invalid order status");
     }
 
@@ -155,7 +188,12 @@ const ListingOrderByStatus = async (req, res) => {
     const { orderStatus } = req.body;
     const { page, limit, skip } = getPagination(req.body);
 
-    if (!orderStatus || !["Confirm", "Ready", "Collected", "Expired", "Rejected"].includes(orderStatus)) {
+    if (
+      !orderStatus ||
+      !["Confirm", "Ready", "Collected", "Expired", "Rejected"].includes(
+        orderStatus
+      )
+    ) {
       return Response.fail(res, "Invalid order status");
     }
 
@@ -184,7 +222,13 @@ const ListingOrderByStatusOfUser = async (req, res) => {
 
     // If valid orderStatus is provided, add it to the query
     if (orderStatus) {
-      const validStatuses = ["Confirm", "Ready", "Collected", "Expired", "Rejected"];
+      const validStatuses = [
+        "Confirm",
+        "Ready",
+        "Collected",
+        "Expired",
+        "Rejected",
+      ];
       if (!validStatuses.includes(orderStatus)) {
         return Response.fail(res, "Invalid order status");
       }
@@ -204,11 +248,14 @@ const ListingOrderByStatusOfUser = async (req, res) => {
   }
 };
 
-
 const fetchOrder = async (req, res) => {
   try {
     const userId = req.userId;
-    const order = await OrderModel.findOne({ userId, isDeleted: false, orderStatus: { $in: ["Confirm", "Ready"] } }).sort({ createdAt: -1 });
+    const order = await OrderModel.findOne({
+      userId,
+      isDeleted: false,
+      orderStatus: { $in: ["Confirm", "Ready"] },
+    }).sort({ createdAt: -1 });
 
     if (!order) return Response.success(res, "No active order found", null);
 
@@ -265,9 +312,13 @@ const verifyPinAndGetTotal = async (req, res) => {
 
     const totalAmount = result.length > 0 ? result[0].totalAmount : 0;
 
-    return Response.success(res, "Pin verified. Total collected/expired order amount.", {
-      totalAmount,
-    });
+    return Response.success(
+      res,
+      "Pin verified. Total collected/expired order amount.",
+      {
+        totalAmount,
+      }
+    );
   } catch (err) {
     return Response.error(res, "Failed to verify pin or calculate total", err);
   }
@@ -281,7 +332,7 @@ const getOrderDetails = async (req, res) => {
       return Response.fail(res, "Order ID is required");
     }
 
-    const order = await OrderModel.findOne({ _id : orderId })
+    const order = await OrderModel.findOne({ _id: orderId });
 
     if (!order) {
       return Response.fail(res, "Order not found");
@@ -303,5 +354,5 @@ module.exports = {
   fetchOrderHistory,
   verifyPinAndGetTotal,
   getOrderDetails,
-  ListingOrderByStatusOfUser
+  ListingOrderByStatusOfUser,
 };

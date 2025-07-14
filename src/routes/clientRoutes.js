@@ -7,6 +7,7 @@ const { isAuth,isClient } = require("../utils/auth");
 router.post("/register", clientController.registerClient)
 router.post("/login", clientController.loginClient)
 router.post("/toggleIsActive",isAuth,isClient, clientController.toggleIsActive)
+router.post("/updateConvenienceFee",isAuth,isClient, clientController.updateConvenienceFee)
 
 module.exports = router;
 

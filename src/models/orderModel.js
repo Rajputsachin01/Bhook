@@ -14,7 +14,7 @@ const OrderSchema = new mongoose.Schema(
     },
     orderId: {
       type: String,
-      unique: true,
+      // unique: true,
     },
     tokenNumber: {
       type: String, 
