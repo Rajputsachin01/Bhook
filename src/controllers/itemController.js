@@ -102,7 +102,6 @@ const listingItems = async (req, res) => {
       .limit(limit);
 
     const total = await ItemModel.countDocuments();
-
     // Grouping items by category
     const groupedMap = new Map();
 

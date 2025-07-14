@@ -190,7 +190,7 @@ const ListingOrderByStatus = async (req, res) => {
 
     if (
       !orderStatus ||
-      !["Confirm", "Ready", "Collected", "Expired", "Rejected"].includes(
+      !["Confirm","Preparing", "Ready", "Collected", "Expired", "Rejected"].includes(
         orderStatus
       )
     ) {

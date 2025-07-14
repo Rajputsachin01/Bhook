@@ -60,7 +60,7 @@ const listCategories = async (req, res) => {
     const total = await CategoryModel.countDocuments();
     if (!categories.length) return Response.fail(res, "No categories found for matching the criteria");
     const paginated = paginatedResponse(categories, total, page, limit);
-    return Response.success(res, "Banner listing fetched", paginated);
+    return Response.success(res, "Category listing fetched", paginated);
   } catch (error) {
     return Response.error(res, "Internal Server Error", error);
   }
