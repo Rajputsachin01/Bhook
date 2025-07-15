@@ -7,10 +7,13 @@ const createCart = async (req, res) => {
   try {
     const userId = req.userId;
     const { itemId, quantity = 1 } = req.body;
+
     if (!isValidObjectId(itemId)) return Response.fail(res, "Invalid item ID");
     if (quantity < 1) return Response.fail(res, "Quantity must be at least 1");
-    let cart = await CartModel.findOne({ userId, isDeleted: false });
-    if (!cart) {
+
+    let cart = await CartModel.findOne({ userId, isDeleted: false }).sort({ createdAt: -1 });
+
+    if (!cart || cart.isPurchased) {
       cart = await CartModel.create({
         userId,
         items: [{ itemId, quantity }],
@@ -19,18 +22,22 @@ const createCart = async (req, res) => {
       const existingItem = cart.items.find(
         (i) => i.itemId.toString() === itemId
       );
+
       if (existingItem) {
         existingItem.quantity += quantity;
       } else {
         cart.items.push({ itemId, quantity });
       }
+
       await cart.save();
     }
+
     return Response.success(res, "Cart updated successfully", cart);
   } catch (err) {
     return Response.error(res, "Failed to create/update cart", err);
   }
 };
+
 
 const updateCart = async (req, res) => {
   try {
@@ -49,6 +56,10 @@ const updateCart = async (req, res) => {
 
     if (!cart) return Response.fail(res, "Cart not found");
 
+    if (cart.isPurchased) {
+      return Response.fail(res, "Cannot update a purchased cart");
+    }
+
     const item = cart.items.find((i) => i.itemId.toString() === itemId);
 
     if (!item) return Response.fail(res, "Item not found in cart");
@@ -61,6 +72,7 @@ const updateCart = async (req, res) => {
     return Response.error(res, "Failed to update cart item", err);
   }
 };
+
 
 const deleteCart = async (req, res) => {
   try {
