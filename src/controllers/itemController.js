@@ -1,8 +1,8 @@
 const ItemModel = require("../models/itemModel");
+const CategoryModel = require("../models/categoryModel");
 const Response = require("../utils/responseHelper");
 const { isEmpty, isValidObjectId } = require("../utils/validationHelper");
 const { getPagination } = require("../utils/paginationHelper");
-
 const createItem = async (req, res) => {
   try {
     const { categoryId, itemName, itemPrice, image, description, parcelFeePerPiece } = req.body;
@@ -27,7 +27,6 @@ const createItem = async (req, res) => {
     return Response.error(res, "Failed to create item", err);
   }
 };
-
 const updateItem = async (req, res) => {
   try {
     const itemId = req.params.id;
@@ -41,7 +40,6 @@ const updateItem = async (req, res) => {
     return Response.error(res, "Failed to update item", err);
   }
 };
-
 const deleteItem = async (req, res) => {
   try {
     const itemId = req.params.id;
@@ -55,7 +53,6 @@ const deleteItem = async (req, res) => {
     return Response.error(res, "Failed to delete item", err);
   }
 };
-
 const toggleIsPublished = async (req, res) => {
   try {
     const { itemId } = req.body;
@@ -73,7 +70,7 @@ const toggleIsPublished = async (req, res) => {
     return Response.error(res, "Failed to toggle status", err);
   }
 };
-
+//for user side 
 const listByCategory = async (req, res) => {
   try {
     const { categoryId } = req.body;
@@ -92,36 +89,33 @@ const listByCategory = async (req, res) => {
   }
 };
 
+//for client side
 const listingItems = async (req, res) => {
   try {
     const { page, limit, skip } = getPagination(req.body);
-
+    const allCategories = await CategoryModel.find().lean();
     const items = await ItemModel.find()
       .populate("categoryId")
       .skip(skip)
       .limit(limit);
 
     const total = await ItemModel.countDocuments();
-    // Grouping items by category
-    const groupedMap = new Map();
-
-    items.forEach((item) => {
-      const categoryId = item.categoryId?._id?.toString() || null;
-      const categoryName = item.categoryId?.categoryName || "Uncategorized";
-
-      if (!groupedMap.has(categoryId)) {
-        groupedMap.set(categoryId, {
-          categoryId,
-          categoryName,
-          items: []
-        });
+    const groupedItems = {};
+    items.forEach(item => {
+      const catId = item.categoryId?._id?.toString();
+      if (!groupedItems[catId]) {
+        groupedItems[catId] = [];
       }
-
-      groupedMap.get(categoryId).items.push(item);
+      groupedItems[catId].push(item);
     });
-
-    const groupedArray = Array.from(groupedMap.values());
-
+    const groupedArray = allCategories.map(cat => {
+      const catId = cat._id.toString();
+      return {
+        categoryId: cat._id,
+        categoryName: cat.categoryName,
+        items: groupedItems[catId] || [],
+      };
+    });
     const result = {
       categories: groupedArray,
       pagination: {
@@ -137,8 +131,6 @@ const listingItems = async (req, res) => {
     return Response.error(res, "Failed to list items", err);
   }
 };
-
-
 module.exports = {
   createItem,
   updateItem,
