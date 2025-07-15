@@ -109,6 +109,11 @@ const createOrder = async (req, res) => {
       createdAt,
     });
 
+    await CartModel.updateOne(
+      { _id: cart._id },
+      { $set: { isPurchased: true } }
+    );
+
     return Response.success(res, "Order placed successfully", order);
   } catch (err) {
     return Response.error(res, "Failed to create order", err);
@@ -190,9 +195,14 @@ const ListingOrderByStatus = async (req, res) => {
 
     if (
       !orderStatus ||
-      !["Confirm","Preparing", "Ready", "Collected", "Expired", "Rejected"].includes(
-        orderStatus
-      )
+      ![
+        "Confirm",
+        "Preparing",
+        "Ready",
+        "Collected",
+        "Expired",
+        "Rejected",
+      ].includes(orderStatus)
     ) {
       return Response.fail(res, "Invalid order status");
     }
