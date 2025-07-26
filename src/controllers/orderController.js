@@ -93,7 +93,7 @@ const createOrder = async (req, res) => {
       return `${yyyy}${mm}${dd}`;
     };
     const orderDate = formatDate(createdAt);
-    const orderId = `ORD-${orderDate}-${tokenNumber}`;
+    const orderId = `${tokenNumber}`;
     const order = await OrderModel.create({
       userId,
       cartId: cart._id,
@@ -303,7 +303,7 @@ const verifyPinAndGetTotal = async (req, res) => {
     if (!pin) return Response.fail(res, "Pin is required");
 
     const client = await ClientModel.findOne({ isDeleted: false, pin });
-    if (!client) return Response.fail(res, "Invalid pin");
+    if (!client) return Response.fail(res, "incorrect pin");
 
     const result = await OrderModel.aggregate([
       {

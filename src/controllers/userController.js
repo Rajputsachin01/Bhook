@@ -38,7 +38,6 @@ const sendOtp = async (req, res) => {
           );
         }
       }
-
       const otpToday = user.otpRequests.filter(
         (r) => new Date(r.requestedAt) >= today
       );

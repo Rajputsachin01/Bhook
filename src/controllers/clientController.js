@@ -11,27 +11,22 @@ const {
 // REGISTER CLIENT
 const registerClient = async (req, res) => {
   try {
-    const { businessName, password, pin, userName, number, convenienceFee } =
+    const { businessName, password, pin, userName, convenienceFee } =
       req.body;
 
     if (
       isEmpty(businessName) ||
       isEmpty(password) ||
       isEmpty(pin) ||
-      isEmpty(userName) ||
-      isEmpty(number)
-    ) {
+      isEmpty(userName)    ) {
       return Response.fail(
         res,
-        "buisnessName, password ,userName , number and pin are required"
+        "buisnessName, password ,userName  and pin are required"
       );
     }
 
     if (pin < 1000 || pin > 9999) {
       return Response.fail(res, "PIN must be a 4-digit number");
-    }
-    if (!isValidPhone(number)) {
-      return Response.fail(res, "Invalid mobile number format");
     }
 
     const existingClient = await ClientModel.findOne({ userName });
@@ -46,7 +41,6 @@ const registerClient = async (req, res) => {
       password: hashedPassword,
       pin,
       userName,
-      number,
       convenienceFee,
     });
 
@@ -57,7 +51,6 @@ const registerClient = async (req, res) => {
       businessName: newClient.businessName,
       isActive: newClient.isActive,
       userName: newClient.userName,
-      number: newClient.number,
       convenienceFee: newClient.convenienceFee,
     });
   } catch (err) {
@@ -68,14 +61,14 @@ const registerClient = async (req, res) => {
 // LOGIN CLIENT
 const loginClient = async (req, res) => {
   try {
-    const { number, userName, password } = req.body;
+    const {  userName, password } = req.body;
 
     if (isEmpty(password)) {
       return Response.fail(res, "Password is required");
     }
 
-    if (isEmpty(userName) && isEmpty(number)) {
-      return Response.fail(res, "Provide either userName or number");
+    if (isEmpty(userName)) {
+      return Response.fail(res, "userName is required");
     }
 
     const query = {
@@ -86,14 +79,6 @@ const loginClient = async (req, res) => {
     if (!isEmpty(userName)) {
       query.$or.push({ userName });
     }
-
-    if (!isEmpty(number)) {
-      if (!isValidPhone(number)) {
-        return Response.fail(res, "Invalid mobile number format");
-      }
-      query.$or.push({ number });
-    }
-
     if (query.$or.length === 0) {
       return Response.fail(res, "Invalid login input");
     }
@@ -103,7 +88,7 @@ const loginClient = async (req, res) => {
     if (!client) return Response.fail(res, "Invalid credentials");
 
     const isMatch = await bcrypt.compare(password, client.password);
-    if (!isMatch) return Response.fail(res, "Invalid credentials");
+    if (!isMatch) return Response.fail(res, "incorrect password");
 
     const token = signInToken(client._id, "client");
 
@@ -113,7 +98,6 @@ const loginClient = async (req, res) => {
         id: client._id,
         businessName: client.businessName,
         userName: client.userName,
-        number: client.number,
         convenienceFee: client.convenienceFee,
         isActive: client.isActive,
       },
@@ -181,7 +165,6 @@ const updateConvenienceFee = async (req, res) => {
       id: client._id,
       businessName: client.businessName,
       userName: client.userName,
-      number: client.number,
       convenienceFee: client.convenienceFee,
     });
   } catch (err) {
