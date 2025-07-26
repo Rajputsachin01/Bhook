@@ -17,7 +17,7 @@ const OrderSchema = new mongoose.Schema(
       // unique: true,
     },
     tokenNumber: {
-      type: String, 
+      type: String,
     },
     orderType: {
       type: String,
@@ -26,8 +26,15 @@ const OrderSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["Preparing","Confirm", "Ready", "Collected", "Expired", "Rejected"],
-      default: "Confirm",
+      enum: [
+        "Preparing",
+        "Confirm",
+        "Ready",
+        "Collected",
+        "Expired",
+        "Rejected",
+      ],
+      default: null,
     },
     createdAt: {
       type: Date,
@@ -50,7 +57,7 @@ const OrderSchema = new mongoose.Schema(
     },
     items: {
       type: Array,
-      default: []
+      default: [],
     },
 
     isDeleted: { type: Boolean, default: false },

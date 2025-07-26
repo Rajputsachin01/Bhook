@@ -56,7 +56,7 @@ const deleteCategory = async (req, res) => {
 const listCategories = async (req, res) => {
   try {
     const { page, limit, skip } = getPagination(req.body);
-    const categories = await CategoryModel.find().sort({ _id: -1 }).skip(skip).limit(limit);
+    const categories = await CategoryModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
     const total = await CategoryModel.countDocuments();
     if (!categories.length) return Response.fail(res, "No categories found for matching the criteria");
     const paginated = paginatedResponse(categories, total, page, limit);
