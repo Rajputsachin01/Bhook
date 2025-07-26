@@ -5,12 +5,28 @@ const { isEmpty, isValidObjectId } = require("../utils/validationHelper");
 const { getPagination } = require("../utils/paginationHelper");
 const createItem = async (req, res) => {
   try {
-    const { categoryId, itemName, itemPrice, image, description, parcelFeePerPiece } = req.body;
+    const {
+      categoryId,
+      itemName,
+      itemPrice,
+      image,
+      description,
+      parcelFeePerPiece,
+    } = req.body;
 
-    if (!isValidObjectId(categoryId)) return Response.fail(res, "Invalid category ID");
+    if (!isValidObjectId(categoryId))
+      return Response.fail(res, "Invalid category ID");
 
-    if (isEmpty(itemName) || isEmpty(itemPrice) || isEmpty(image) || isEmpty(parcelFeePerPiece)) {
-      return Response.fail(res, "itemName, itemPrice, image, and parcelFeePerPiece are required");
+    if (
+      isEmpty(itemName) ||
+      isEmpty(itemPrice) ||
+      isEmpty(image) ||
+      isEmpty(parcelFeePerPiece)
+    ) {
+      return Response.fail(
+        res,
+        "itemName, itemPrice, image, and parcelFeePerPiece are required"
+      );
     }
 
     const item = await ItemModel.create({
@@ -32,7 +48,9 @@ const updateItem = async (req, res) => {
     const itemId = req.params.id;
     if (!isValidObjectId(itemId)) return Response.fail(res, "Invalid item ID");
 
-    const item = await ItemModel.findByIdAndUpdate(itemId, req.body, { new: true });
+    const item = await ItemModel.findByIdAndUpdate(itemId, req.body, {
+      new: true,
+    });
     if (!item) return Response.fail(res, "Item not found");
 
     return Response.success(res, "Item updated successfully", item);
@@ -63,14 +81,39 @@ const toggleIsPublished = async (req, res) => {
     item.isPublished = !item.isPublished;
     await item.save();
 
-    return Response.success(res, `Item is now ${item.isPublished ? "Published" : "Unpublished"}`, {
-      isPublished: item.isPublished,
-    });
+    return Response.success(
+      res,
+      `Item is now ${item.isPublished ? "Published" : "Unpublished"}`,
+      {
+        isPublished: item.isPublished,
+      }
+    );
   } catch (err) {
     return Response.error(res, "Failed to toggle status", err);
   }
 };
-//for user side 
+const toggleIsAvailable = async (req, res) => {
+  try {
+    const { itemId } = req.body;
+    if (!isValidObjectId(itemId)) return Response.fail(res, "Invalid item ID");
+    const item = await ItemModel.findById(itemId);
+    if (!item) return Response.fail(res, "Item not found");
+
+    item.isAvailable = !item.isAvailable;
+    await item.save();
+
+    return Response.success(
+      res,
+      `Item is now ${item.isAvailable ? "Available" : "UnAvailable"}`,
+      {
+        isAvailable: item.isAvailable,
+      }
+    );
+  } catch (err) {
+    return Response.error(res, "Failed to toggle status", err);
+  }
+};
+//for user side
 const listByCategory = async (req, res) => {
   try {
     const { categoryId } = req.body;
@@ -93,22 +136,23 @@ const listByCategory = async (req, res) => {
 const listingItems = async (req, res) => {
   try {
     const { page, limit, skip } = getPagination(req.body);
-    const allCategories = await CategoryModel.find().lean();
+    const allCategories = await CategoryModel.find().sort({ createdAt: -1 }).lean();
     const items = await ItemModel.find()
       .populate("categoryId")
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
     const total = await ItemModel.countDocuments();
     const groupedItems = {};
-    items.forEach(item => {
+    items.forEach((item) => {
       const catId = item.categoryId?._id?.toString();
       if (!groupedItems[catId]) {
         groupedItems[catId] = [];
       }
       groupedItems[catId].push(item);
     });
-    const groupedArray = allCategories.map(cat => {
+    const groupedArray = allCategories.map((cat) => {
       const catId = cat._id.toString();
       return {
         categoryId: cat._id,
@@ -126,7 +170,11 @@ const listingItems = async (req, res) => {
       },
     };
 
-    return Response.success(res, "Items listed by category with pagination", result);
+    return Response.success(
+      res,
+      "Items listed by category with pagination",
+      result
+    );
   } catch (err) {
     return Response.error(res, "Failed to list items", err);
   }
@@ -136,6 +184,7 @@ module.exports = {
   updateItem,
   deleteItem,
   toggleIsPublished,
+  toggleIsAvailable,
   listByCategory,
   listingItems,
 };

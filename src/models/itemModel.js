@@ -12,6 +12,7 @@ const ItemSchema = new mongoose.Schema(
     image: { type: String, required: true, default: "" },
     description: { type: String, default: "" },
     parcelFeePerPiece: { type: Number, required: true, default: 0 },
+    isAvailable: { type: Boolean, default: false },
     isPublished: { type: Boolean, default: true },
   },
   { timestamps: true }
