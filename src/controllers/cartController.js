@@ -10,8 +10,13 @@ const createCart = async (req, res) => {
 
     if (!isValidObjectId(itemId)) return Response.fail(res, "Invalid item ID");
     if (quantity < 1) return Response.fail(res, "Quantity must be at least 1");
-
-    let cart = await CartModel.findOne({ userId, isDeleted: false }).sort({ createdAt: -1 });
+    const item = await ItemModel.findById(itemId);
+    if (!item) return Response.fail(res, "Item not found");
+    if (!item.isPublished)
+      return Response.fail(res, `${item.itemName} is unavailable`);
+    let cart = await CartModel.findOne({ userId, isDeleted: false }).sort({
+      createdAt: -1,
+    });
 
     if (!cart || cart.isPurchased) {
       cart = await CartModel.create({
@@ -37,7 +42,6 @@ const createCart = async (req, res) => {
     return Response.error(res, "Failed to create/update cart", err);
   }
 };
-
 
 const updateCart = async (req, res) => {
   try {
@@ -72,7 +76,6 @@ const updateCart = async (req, res) => {
     return Response.error(res, "Failed to update cart item", err);
   }
 };
-
 
 const deleteCart = async (req, res) => {
   try {
@@ -118,7 +121,6 @@ const removeItemFromCart = async (req, res) => {
   }
 };
 
-
 // const listingCarts = async (req, res) => {
 //   try {
 //     const userId = req.userId;
@@ -134,7 +136,7 @@ const removeItemFromCart = async (req, res) => {
 //     if (!cart) return Response.success(res, "Cart is empty", []);
 
 //     let cartTotal = 0;
-//     let totalItems = 0; 
+//     let totalItems = 0;
 
 //     const enrichedItems = cart.items.map((entry) => {
 //       const item = entry.itemId;
@@ -144,7 +146,7 @@ const removeItemFromCart = async (req, res) => {
 //       const itemTotal = itemPrice * quantity;
 
 //       cartTotal += itemTotal;
-//       totalItems += quantity; 
+//       totalItems += quantity;
 
 //       return {
 //         _id: item._id,
@@ -173,21 +175,24 @@ const listingCarts = async (req, res) => {
   try {
     const userId = req.userId;
 
-    const cart = await CartModel.findOne({ userId, isDeleted: false }).populate({
-      path: "items.itemId",
-      populate: {
-        path: "categoryId", 
-        model: "Category",
-      },
-    });
+    const cart = await CartModel.findOne({ userId, isDeleted: false }).populate(
+      {
+        path: "items.itemId",
+        populate: {
+          path: "categoryId",
+          model: "Category",
+        },
+      }
+    );
     if (!cart) return Response.success(res, "Cart is empty", []);
 
     let cartTotal = 0;
     let totalItems = 0;
     const enrichedItems = cart.items.map((entry) => {
-      const item = entry.itemId; 
+      const item = entry.itemId;
       const quantity = entry.quantity;
-
+      const isUnavailable = !item.isPublished;
+      const itemName = isUnavailable ? "Item is unavailable" : item.itemName;
       const itemPrice = item?.itemPrice || 0;
       const itemTotal = itemPrice * quantity;
 
@@ -195,15 +200,16 @@ const listingCarts = async (req, res) => {
       totalItems += quantity;
       return {
         _id: item._id,
-        itemName: item.itemName,
+        itemName: itemName,
         itemPrice,
         quantity,
         itemTotal,
         parcelFeePerPiece: item.parcelFeePerPiece,
-        category: item.categoryId?.categoryName || "Uncategorized", 
-        description: item.description, 
-        image: item.image, 
+        category: item.categoryId?.categoryName || "Uncategorized",
+        description: item.description,
+        image: item.image,
         isPublished: item.isPublished,
+        isUnavailable,
       };
     });
     const finalCart = {
@@ -218,10 +224,6 @@ const listingCarts = async (req, res) => {
     return Response.error(res, "Failed to fetch cart", err);
   }
 };
-
-
-
-
 
 module.exports = {
   createCart,
